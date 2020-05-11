@@ -1,0 +1,149 @@
+package util;
+
+import java.time.LocalDateTime;
+import java.time.Period;
+import therapistData.WorkHours;
+import therapy.Term;
+
+public class MaticeObsazenosti implements Matice {
+
+    private boolean[][] states;
+    private Obdobi obdobi = Obdobi.NEXT_WEEK;
+    private WorkHours workHours;
+    private int hours;
+    private int days;
+
+    public MaticeObsazenosti(Obdobi obdobi, WorkHours workHours) {
+        this.obdobi = obdobi;
+        this.workHours = workHours;
+        hours = workHours.getDurOfWorkDay();
+        days = obdobi.getPocetDnu();
+        states = new boolean[days][hours];
+    }
+
+    @Override
+    public LocalDateTime getDatumACas(int den, int hodina) {
+        checkValues(den, hodina);
+        return obdobi.getDatumOdKdy().atStartOfDay().plusDays(den).plusHours(workHours.getBeginOfWorkDay() + hodina);
+    }
+
+    @Override
+    public boolean[][] getMatice() {
+        return states;
+    }
+
+    @Override
+    public LocalDateTime najdiPrvniVolneMisto(int delka) {
+        int day;
+        int hour = workHours.getDurOfWorkDay();
+        boolean isFree = true;
+        for (day = 0; day < obdobi.getPocetDnu(); day++) {
+            for (hour = 0; hour < workHours.getDurOfWorkDay(); hour++) {
+                isFree = true;
+                if (hour + delka > workHours.getDurOfWorkDay()) {
+                    isFree = false;
+                    break;
+                }
+                for (int i = 0; i < delka && isFree; i++) {
+                    if (states[day][hour]) {
+                        isFree = false;
+                    }
+                }
+                if (isFree) {
+                    break;
+                }
+            }
+            if (isFree) {
+                break;
+            }
+        }
+        if (day != obdobi.getPocetDnu() && hour != workHours.getDurOfWorkDay()) {
+            return getDatumACas(day, hour);
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public char[][] getMaticeChar(char znakVolno, char znakObsazeno) {
+        char[][] chars = new char[days][hours];
+        for (int i = 0; i < days; i++) {
+            for (int j = 0; j < hours; j++) {
+                chars[i][j] = !states[i][j] ? znakVolno : znakObsazeno;
+            }
+        }
+        return chars;
+    }
+
+    @Override
+    public Term[][] getMaticeTermin() {
+        Term[][] terms = new Term[days][hours];
+        for (int i = 0; i < days; i++) {
+            System.arraycopy(states[i], 0, terms[i], 0, hours);
+        }
+        return terms;
+    }
+
+    @Override
+    public Obdobi getObdobi() {
+        return obdobi;
+    }
+
+    @Override
+    public int getPocetDnu() {
+        return days;
+    }
+
+    @Override
+    public int getPocetHodin() {
+        return hours;
+    }
+
+    @Override
+    public WorkHours getPracovniDoba() {
+        return workHours;
+    }
+
+    @Override
+    public boolean jeVolno(int den, int hodina) {
+        checkValues(den, hodina);
+        return !states[den][hodina];
+    }
+
+    @Override
+    public boolean jeVolno(LocalDateTime odKdy, LocalDateTime doKdy) {
+        int day1 = Period.between(obdobi.getDatumOdKdy(), odKdy.toLocalDate()).getDays();
+        int day2 = Period.between(obdobi.getDatumOdKdy(), doKdy.toLocalDate()).getDays();
+        if (day1 != day2) {
+            throw new IllegalArgumentException();
+        }
+        int hour1 = odKdy.getHour() - workHours.getBeginOfWorkDay();
+        int hour2 = doKdy.getHour() - workHours.getBeginOfWorkDay();
+        for (int i = hour1; i < hour2; i++) {
+            if (!jeVolno(day1, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void setObsazeni(LocalDateTime date, int delka) {
+        long day = obdobi.getDatumOdKdy().toEpochDay() - date.toLocalDate().toEpochDay();
+        int hour = date.getHour() - workHours.getBeginOfWorkDay();
+        for (int i = 0; i < delka; i++) {
+            setOccupancy(day, hour + i);
+        }
+    }
+
+    private void setOccupancy(long day, int hour) {
+        checkValues(day, hour);
+        states[(int) day][hour] = true;
+    }
+
+    private void checkValues(long day, int hour) {
+        if (day < 0 && day >= days || hour < 0 && hour >= hours) {
+            throw new IndexOutOfBoundsException();
+        }
+    }
+}

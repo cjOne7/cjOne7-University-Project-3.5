@@ -1,0 +1,78 @@
+package therapistData;
+
+import collection.AbstrDoubleList;
+import javafx.scene.shape.Rectangle;
+import therapy.GenerateTerms;
+import therapy.Term;
+
+public class Therapist {
+
+    private Rectangle[][] rects;
+    private GenerateTerms generateTerms = new GenerateTerms();
+    private AbstrDoubleList<Term> listOfTerms = new AbstrDoubleList<>();
+    private boolean[][] states;
+
+    private final Person person;
+    private WorkHours workHours;
+
+    public static final Therapist EMPTY_THERAPIST = new Therapist(Person.EMPTY_PERSON, WorkHours.STANDARD_WORK_HOURS);
+
+    public Therapist(final Person person, final WorkHours workHours) {
+        this.person = person;
+        this.workHours = workHours;
+    }
+
+    public Person getPerson() {
+        return person;
+    }
+
+    public WorkHours getWorkHours() {
+        return workHours;
+    }
+
+    public void setWorkHours(final WorkHours workHours) {
+        this.workHours = workHours;
+    }
+
+    public GenerateTerms getGenerateTerms() {
+        return generateTerms;
+    }
+
+    public void setGenerateTerms(GenerateTerms generateTerms) {
+        this.generateTerms = generateTerms;
+        setStates(generateTerms.getIsBusy());
+    }
+
+    public AbstrDoubleList<Term> getListOfTerms() {
+        return listOfTerms;
+    }
+
+    public void setListOfTerms(final AbstrDoubleList<Term> listOfTerms) {
+        this.listOfTerms = listOfTerms;
+    }
+
+    public Rectangle[][] getRects() {
+        return rects;
+    }
+
+    public void setRects(final Rectangle[][] rects) {
+        this.rects = rects;
+    }
+
+    public boolean[][] getStates() {
+        return states;
+    }
+
+    private void setStates(final boolean[][] states) {
+        this.states = states;
+    }
+
+    @Override
+    public String toString() {
+        return person.toString();
+    }
+
+    public String toMyOwnString() {
+        return "Therapist:\n\t" + person.toMyOwnString() + "\n\t" + workHours;
+    }
+}

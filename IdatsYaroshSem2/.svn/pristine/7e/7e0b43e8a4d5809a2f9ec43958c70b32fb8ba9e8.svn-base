@@ -1,0 +1,236 @@
+package table;
+
+import collection.KolekceException;
+import java.util.Iterator;
+import java.io.Serializable;
+import java.util.LinkedList;
+import java.util.List;
+import queueNstack.*;
+
+public class AbstrTable<K extends Comparable<K>, V> implements Table<K, V>, Serializable {
+
+    private Node root;
+
+    @Override
+    public void zrus() {
+        root = null;
+    }
+
+    @Override
+    public boolean jePrazdny() {
+        return root == null;
+    }
+
+    @Override
+    public int mohutnost() {
+        return size(root);
+    }
+
+    public Node getRoot() {
+        return root;
+    }
+
+    private int size(final Node root) {
+        final QueueStack<Node> stack = new AbstrLIFO<>();
+        stack.vloz(root);
+
+        int size = 0;
+
+        if (root == null) {
+            return size;
+        }
+        size = 1;
+        while (!stack.jePrazdny()) {
+            Node node = stack.odeber();
+            if (node.right != null) {
+                size++;
+                stack.vloz(node.right);
+            }
+            if (node.left != null) {
+                size++;
+                stack.vloz(node.left);
+            }
+        }
+        return size;
+    }
+
+    @Override
+    public void vloz(final K key, final V value) throws KolekceException {
+        if (key == null || value == null) {
+            throw new NullPointerException("Key or value is null.");
+        }
+        if (najdi(key) != null) {
+            throw new KolekceException("Tree has value with key: " + key);
+        }
+        if (jePrazdny()) {
+            root = new Node(key, value);
+        } else {
+            Node node = root, helpNode = null;
+            while (node != null) {
+                int cmp = key.compareTo(node.key);
+                if (cmp == 0) {
+                    node.value = value;
+                    return;
+                } else {
+                    helpNode = node;
+                    if (cmp < 0) {
+                        node = node.left;
+                    } else {
+                        node = node.right;
+                    }
+                }
+            }
+            final Node newNode = new Node(key, value);
+            if (helpNode == null) {
+                root = newNode;
+            } else {
+                if (key.compareTo(helpNode.key) < 0) {
+                    helpNode.left = newNode;
+                } else {
+                    helpNode.right = newNode;
+                }
+            }
+        }
+    }
+
+    @Override
+    public V najdi(final K key) {
+        if (key == null) {
+            throw new NullPointerException("Key is null");
+        }
+        Node findNode = root;
+        while (findNode != null) {
+            int cmp = key.compareTo(findNode.key);
+            if (cmp == 0) {
+                return findNode.value;
+            }
+            if (cmp < 0) {
+                findNode = findNode.left;
+            } else {
+                findNode = findNode.right;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public V odeber(final K key) throws IllegalAccessException {
+        if (key == null) {
+            throw new NullPointerException("Key is null.");
+        }
+        if (jePrazdny()) {
+            throw new KolekceException("Tree is empty");
+        }
+        final V value = najdi(key);
+        root = deleteTreeNode(root, key);
+        return value;
+    }
+
+    private Node deleteTreeNode(final Node root, final K key) {
+        Node cur = root;
+        if (cur == null) {
+            return cur;
+        }
+        if (cur.key.compareTo(key) > 0) {
+            cur.left = deleteTreeNode(cur.left, key);
+        } else if (cur.key.compareTo(key) < 0) {
+            cur.right = deleteTreeNode(cur.right, key);
+        } else {
+            if (cur.left == null && cur.right == null) {
+                cur = null;
+            } else if (cur.right == null) {
+                cur = cur.left;
+            } else if (cur.left == null) {
+                cur = cur.right;
+            } else {
+                final Node temp = findMinFromRight(cur.right);
+                cur.value = temp.value;
+                cur.right = deleteTreeNode(cur.right, temp.key);
+            }
+        }
+        return cur;
+    }
+
+    private Node findMinFromRight(Node node) {
+        while (node.left != null) {
+            node = node.left;
+        }
+        return node;
+    }
+
+    private List<V> traverseInOrder(final Node node, final List<V> values) {
+        checkForNull(values);
+        if (node != null) {
+            traverseInOrder(node.left, values);
+            values.add(node.value);
+            traverseInOrder(node.right, values);
+        }
+        return values;
+    }
+
+    private List<V> traverseLevelOrder(final Node rootNode, final List<V> values) {
+        checkForNull(values);
+        if (rootNode == null) {
+            return null;
+        }
+        final QueueStack<Node> queue = new AbstrFIFO<>();
+        queue.vloz(rootNode);
+        while (!queue.jePrazdny()) {
+
+            final Node node = queue.odeber();
+
+            values.add(node.value);
+
+            if (node.left != null) {
+                queue.vloz(node.left);
+            }
+            if (node.right != null) {
+                queue.vloz(node.right);
+            }
+        }
+        return values;
+    }
+
+    @Override
+    public Iterator<V> vytvorIterator(final TypProhlidky typ) {
+        switch (typ) {
+            case IN_ORDER:
+                final List<V> list = new LinkedList<>();
+                traverseInOrder(root, list);
+                return list.iterator();
+            case LEVEL_ORDER:
+                return iterator();
+        }
+        return null;
+    }
+
+    @Override
+    public Iterator<V> iterator() {
+        final List<V> list = new LinkedList<>();
+        traverseLevelOrder(root, list);
+        return list.iterator();
+    }
+
+    private class Node implements Serializable {
+
+        private K key;
+        private V value;
+        private Node left;
+        private Node right;
+
+        public Node(final K key, final V value) {
+            this.value = value;
+            this.key = key;
+        }
+
+        public boolean isLeaf() {
+            return left == null ? right == null : false;
+        }
+    }
+
+    private void checkForNull(final List<V> values) {
+        if (values == null) {
+            throw new NullPointerException("List is null");
+        }
+    }
+}
